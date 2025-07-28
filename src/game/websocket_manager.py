@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict
 from fastapi import WebSocket, WebSocketDisconnect
 from .session_manager import SessionManager
@@ -6,6 +7,7 @@ class WebSocketManager:
     def __init__(self):
         self.connections: Dict[str, WebSocket] = {}
         self.session_manager = None
+        self.timer_tasks: Dict[str, asyncio.Task] = {}
     
     def set_session_manager(self, session_manager: SessionManager):
         self.session_manager = session_manager
@@ -66,6 +68,25 @@ class WebSocketManager:
                     "session_uuid": session_uuid
                 })
                 print("test_connection - response sent")
+            
+            elif data.get("type") == "start_game" and client_type == "controller":
+                await self._start_game(session_uuid)
+            
+            elif data.get("type") == "stop_game" and client_type == "controller":
+                await self._stop_game(session_uuid)
+            
+            elif data.get("type") == "adjust_timer" and client_type == "controller":
+                seconds = data.get("seconds", 0)
+                await self._adjust_timer(session_uuid, seconds)
+            
+            elif data.get("type") == "mark_word_correct" and client_type == "controller":
+                await self._mark_word_correct(session_uuid)
+            
+            elif data.get("type") == "mark_word_incorrect" and client_type == "controller":
+                await self._mark_word_incorrect(session_uuid)
+            
+            elif data.get("type") == "skip_word" and client_type == "controller":
+                await self._skip_word(session_uuid)
     
     async def _send_session_state(self, websocket: WebSocket, session: dict):
         print(f"Sending session state: {session}")
@@ -74,6 +95,180 @@ class WebSocketManager:
             "session": session
         })
         print("Session state sent")
+    
+    async def _start_game(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            return
+        
+        # Pick a new word
+        word = self.session_manager.pick_new_word(session_uuid)
+        if not word:
+            await self._broadcast_to_session(session_uuid, {
+                "type": "error",
+                "message": "No more words available"
+            })
+            return
+        
+        # Start game
+        session["state"] = "playing"
+        # Only reset timer to 60 when picking a new word (not resuming)
+        if session["current_word"] != word:
+            session["timer"] = 60
+        session["current_word"] = word
+        
+        # Start timer
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+        
+        self.timer_tasks[session_uuid] = asyncio.create_task(
+            self._run_timer(session_uuid)
+        )
+        
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _stop_game(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            return
+        
+        session["state"] = "paused"
+        
+        # Stop timer
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+            del self.timer_tasks[session_uuid]
+        
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _adjust_timer(self, session_uuid: str, seconds: int):
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            return
+        
+        session["timer"] = max(0, session["timer"] + seconds)
+        
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _mark_word_correct(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if not session or not session.get("current_word"):
+            return
+        
+        # Mark word as used and update stats
+        self.session_manager.mark_word_used(session_uuid, session["current_word"])
+        session["stats"]["correct"] += 1
+        session["stats"]["total_points"] += 1
+        
+        # Pick new word and continue
+        await self._pick_new_word_and_continue(session_uuid)
+    
+    async def _mark_word_incorrect(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if not session or not session.get("current_word"):
+            return
+        
+        # Mark word as used and update stats
+        self.session_manager.mark_word_used(session_uuid, session["current_word"])
+        session["stats"]["incorrect"] += 1
+        session["stats"]["total_points"] -= 1
+        
+        # Pick new word and continue
+        await self._pick_new_word_and_continue(session_uuid)
+    
+    async def _skip_word(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if not session or not session.get("current_word"):
+            return
+        
+        # Mark word as used (no point change for skip)
+        self.session_manager.mark_word_used(session_uuid, session["current_word"])
+        
+        # Pick new word and continue
+        await self._pick_new_word_and_continue(session_uuid)
+    
+    async def _pick_new_word_and_continue(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            return
+        
+        # Pick a new word
+        word = self.session_manager.pick_new_word(session_uuid)
+        if not word:
+            # No more words available
+            session["state"] = "paused"
+            session["current_word"] = None
+            if session_uuid in self.timer_tasks:
+                self.timer_tasks[session_uuid].cancel()
+                del self.timer_tasks[session_uuid]
+            
+            await self._broadcast_to_session(session_uuid, {
+                "type": "game_ended",
+                "message": "No more words available"
+            })
+        else:
+            # Continue with new word, reset timer to 60
+            session["current_word"] = word
+            session["timer"] = 60
+            
+            # Restart timer if game was playing
+            if session["state"] == "playing":
+                if session_uuid in self.timer_tasks:
+                    self.timer_tasks[session_uuid].cancel()
+                
+                self.timer_tasks[session_uuid] = asyncio.create_task(
+                    self._run_timer(session_uuid)
+                )
+        
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _run_timer(self, session_uuid: str):
+        try:
+            while True:
+                session = self.session_manager.get_session(session_uuid)
+                if not session or session["timer"] <= 0:
+                    break
+                
+                await asyncio.sleep(1)
+                session["timer"] -= 1
+                
+                # Broadcast timer update
+                await self._broadcast_to_session(session_uuid, {
+                    "type": "timer_update",
+                    "timer": session["timer"]
+                })
+                
+            # Timer expired
+            session = self.session_manager.get_session(session_uuid)
+            if session:
+                session["state"] = "paused"
+                await self._broadcast_session_state(session_uuid)
+                
+        except asyncio.CancelledError:
+            pass
+    
+    async def _broadcast_session_state(self, session_uuid: str):
+        session = self.session_manager.get_session(session_uuid)
+        if session:
+            await self._broadcast_to_session(session_uuid, {
+                "type": "session_state",
+                "session": session
+            })
+    
+    async def _broadcast_to_session(self, session_uuid: str, message: dict):
+        # Find all connections for this session
+        session_connections = [
+            (conn_id, ws) for conn_id, ws in self.connections.items()
+            if conn_id.startswith(session_uuid)
+        ]
+        
+        for conn_id, websocket in session_connections:
+            try:
+                await websocket.send_json(message)
+            except:
+                # Connection might be closed, remove it
+                if conn_id in self.connections:
+                    del self.connections[conn_id]
     
     async def _disconnect(self, connection_id: str, session: dict, client_type: str):
         if connection_id in self.connections:

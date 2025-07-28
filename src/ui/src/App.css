@@ -66,6 +66,32 @@
   background-color: #45a049;
 }
 
+.start-btn {
+  background-color: #4caf50 !important;
+}
+
+.start-btn:hover {
+  background-color: #45a049 !important;
+}
+
+.stop-btn {
+  background-color: #f44336 !important;
+}
+
+.stop-btn:hover {
+  background-color: #da190b !important;
+}
+
+.controls button:disabled {
+  background-color: #555 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+.controls button:disabled:hover {
+  background-color: #555 !important;
+}
+
 .controller-panel {
   margin: 30px 0;
 }
@@ -95,4 +121,113 @@
   border-top: 1px solid #666;
   padding-top: 15px;
   margin-top: 15px;
+}
+
+.current-word {
+  font-size: 18px;
+  background-color: #555;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.timer {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.timer-warning {
+  color: #ff6b6b;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.status-lobby { color: #ffc107; }
+.status-playing { color: #4caf50; }
+.status-paused { color: #ff9800; }
+
+.stats h4 {
+  margin-bottom: 10px;
+  color: #4caf50;
+}
+
+.timer-controls {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #333;
+  border-radius: 8px;
+}
+
+.timer-controls h4 {
+  color: #4caf50;
+  margin-bottom: 10px;
+}
+
+.timer-btn {
+  padding: 8px 15px;
+  margin: 5px;
+  font-size: 14px;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.timer-btn:hover {
+  background-color: #777;
+}
+
+.word-controls {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #333;
+  border-radius: 8px;
+}
+
+.word-controls h4 {
+  color: #4caf50;
+  margin-bottom: 10px;
+}
+
+.word-btn {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.correct-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.correct-btn:hover {
+  background-color: #45a049;
+}
+
+.incorrect-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.incorrect-btn:hover {
+  background-color: #da190b;
+}
+
+.skip-btn {
+  background-color: #ff9800;
+  color: white;
+}
+
+.skip-btn:hover {
+  background-color: #f57c00;
 }

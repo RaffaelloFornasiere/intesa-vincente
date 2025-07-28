@@ -44,29 +44,44 @@ class SessionManager:
         return self.active_sessions.get(session_uuid)
     
     def _create_default_files(self, session_dir: Path):
-        words_file = session_dir / "words.json"
         used_words_file = session_dir / "used_words.json"
-        
-        if not words_file.exists():
-            default_words = [
-                "casa", "mare", "sole", "luna", "libro", "computer", 
-                "telefono", "macchina", "gatto", "cane", "pizza", 
-                "calcio", "musica", "scuola", "lavoro", "famiglia"
-            ]
-            words_file.write_text(json.dumps(default_words, indent=2))
         
         if not used_words_file.exists():
             used_words_file.write_text(json.dumps([], indent=2))
     
     def get_available_words(self, session_uuid: str) -> list:
+        # Use repo-level words.json
+        repo_words_file = Path("words.json")
         session_dir = self.sessions_dir / session_uuid
-        words_file = session_dir / "words.json"
         used_words_file = session_dir / "used_words.json"
         
-        if not words_file.exists() or not used_words_file.exists():
+        if not repo_words_file.exists() or not used_words_file.exists():
             return []
         
-        all_words = json.loads(words_file.read_text())
+        all_words = json.loads(repo_words_file.read_text())
         used_words = json.loads(used_words_file.read_text())
         
         return [word for word in all_words if word not in used_words]
+    
+    def pick_new_word(self, session_uuid: str) -> str:
+        import random
+        available_words = self.get_available_words(session_uuid)
+        if not available_words:
+            return None
+        
+        word = random.choice(available_words)
+        session = self.get_session(session_uuid)
+        if session:
+            session["current_word"] = word
+        
+        return word
+    
+    def mark_word_used(self, session_uuid: str, word: str):
+        session_dir = self.sessions_dir / session_uuid
+        used_words_file = session_dir / "used_words.json"
+        
+        if used_words_file.exists():
+            used_words = json.loads(used_words_file.read_text())
+            if word not in used_words:
+                used_words.append(word)
+                used_words_file.write_text(json.dumps(used_words, indent=2))

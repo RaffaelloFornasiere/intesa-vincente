@@ -21,6 +21,8 @@ interface WebSocketMessage {
   message?: string;
   client_type?: string;
   session_uuid?: string;
+  timer?: number;
+  seconds?: number;
 }
 
 function App() {
@@ -78,6 +80,14 @@ function App() {
       } else if (data.type === 'test_response') {
         console.log('Test connection response:', data.message);
         setError(''); // Clear any previous errors
+      } else if (data.type === 'timer_update' && data.timer !== undefined) {
+        // Update timer in current session data
+        setSessionData(prevData => {
+          if (prevData && data.timer !== undefined) {
+            return {...prevData, timer: data.timer};
+          }
+          return prevData;
+        });
       } else if (data.error) {
         setError(data.error);
       }
@@ -110,6 +120,48 @@ function App() {
       websocket.send(JSON.stringify({ type: 'get_state' }));
     } else {
       console.log('WebSocket not connected');
+    }
+  };
+
+  const startGame = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Starting game...');
+      websocket.send(JSON.stringify({ type: 'start_game' }));
+    }
+  };
+
+  const stopGame = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Stopping game...');
+      websocket.send(JSON.stringify({ type: 'stop_game' }));
+    }
+  };
+
+  const adjustTimer = (seconds: number) => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log(`Adjusting timer by ${seconds} seconds...`);
+      websocket.send(JSON.stringify({ type: 'adjust_timer', seconds }));
+    }
+  };
+
+  const markWordCorrect = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Marking word as correct...');
+      websocket.send(JSON.stringify({ type: 'mark_word_correct' }));
+    }
+  };
+
+  const markWordIncorrect = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Marking word as incorrect...');
+      websocket.send(JSON.stringify({ type: 'mark_word_incorrect' }));
+    }
+  };
+
+  const skipWord = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Skipping word...');
+      websocket.send(JSON.stringify({ type: 'skip_word' }));
     }
   };
 
@@ -150,15 +202,52 @@ function App() {
             <div className="controls">
               <button onClick={testConnection}>Test Connection</button>
               <button onClick={getSessionState}>Get State</button>
+              <button 
+                onClick={startGame} 
+                className="start-btn"
+                disabled={sessionData?.state === 'playing'}
+              >
+                Start Game
+              </button>
+              <button 
+                onClick={stopGame} 
+                className="stop-btn"
+                disabled={sessionData?.state !== 'playing'}
+              >
+                Stop Game
+              </button>
             </div>
+
+            <div className="timer-controls">
+              <h4>Timer Controls</h4>
+              <button onClick={() => adjustTimer(-10)} className="timer-btn">-10s</button>
+              <button onClick={() => adjustTimer(-5)} className="timer-btn">-5s</button>
+              <button onClick={() => adjustTimer(-1)} className="timer-btn">-1s</button>
+              <button onClick={() => adjustTimer(1)} className="timer-btn">+1s</button>
+              <button onClick={() => adjustTimer(5)} className="timer-btn">+5s</button>
+              <button onClick={() => adjustTimer(10)} className="timer-btn">+10s</button>
+            </div>
+
+            {sessionData?.current_word && (
+              <div className="word-controls">
+                <h4>Word Actions</h4>
+                <button onClick={markWordCorrect} className="word-btn correct-btn">✓ Correct (+1)</button>
+                <button onClick={markWordIncorrect} className="word-btn incorrect-btn">✗ Incorrect (-1)</button>
+                <button onClick={skipWord} className="word-btn skip-btn">⏭ Skip (0)</button>
+              </div>
+            )}
 
             {sessionData && (
               <div className="session-info">
-                <h3>Session Data</h3>
-                <p>State: {sessionData.state}</p>
+                <h3>Game Status</h3>
+                <p>State: <span className={`status-${sessionData.state}`}>{sessionData.state}</span></p>
+                {sessionData.current_word && (
+                  <p className="current-word">Current Word: <strong>{sessionData.current_word}</strong></p>
+                )}
+                <p className="timer">Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span></p>
                 <p>Connected Clients: {sessionData.connected_clients.join(', ')}</p>
-                <p>Timer: {sessionData.timer}s</p>
                 <div className="stats">
+                  <h4>Statistics</h4>
                   <p>Correct: {sessionData.stats.correct}</p>
                   <p>Incorrect: {sessionData.stats.incorrect}</p>
                   <p>Total Points: {sessionData.stats.total_points}</p>
