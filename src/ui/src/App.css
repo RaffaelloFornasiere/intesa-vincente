@@ -1,0 +1,98 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  min-height: 100vh;
+}
+
+.error {
+  background-color: #ff6b6b;
+  color: white;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+.status {
+  margin: 20px 0;
+  font-size: 18px;
+}
+
+.connected {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.disconnected {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.error {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.session-creation {
+  margin: 30px 0;
+}
+
+.session-creation input {
+  padding: 10px;
+  margin: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+}
+
+.session-creation button,
+.controls button {
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.session-creation button:hover,
+.controls button:hover {
+  background-color: #45a049;
+}
+
+.controller-panel {
+  margin: 30px 0;
+}
+
+.controls {
+  margin: 20px 0;
+}
+
+.session-info {
+  background-color: #444;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.session-info h3 {
+  margin-top: 0;
+  color: #4caf50;
+}
+
+.session-info p {
+  margin: 10px 0;
+}
+
+.stats {
+  border-top: 1px solid #666;
+  padding-top: 15px;
+  margin-top: 15px;
+}

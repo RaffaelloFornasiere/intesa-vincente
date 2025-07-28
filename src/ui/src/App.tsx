@@ -1,0 +1,175 @@
+import React, { useState, useEffect } from 'react';
+import './App.css';
+
+interface SessionData {
+  uuid: string;
+  state: string;
+  connected_clients: string[];
+  timer: number;
+  stats: {
+    correct: number;
+    incorrect: number;
+    total_points: number;
+  };
+  current_word: string | null;
+}
+
+interface WebSocketMessage {
+  type: string;
+  session?: SessionData;
+  error?: string;
+  message?: string;
+  client_type?: string;
+  session_uuid?: string;
+}
+
+function App() {
+  const [apiKey, setApiKey] = useState<string>('');
+  const [sessionUuid, setSessionUuid] = useState<string>('');
+  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
+  const [error, setError] = useState<string>('');
+
+  const createSession = async () => {
+    if (!apiKey) {
+      setError('API key is required');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ api_key: apiKey }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+
+      const data = await response.json();
+      setSessionUuid(data.session_uuid);
+      setError('');
+      
+      // Auto-connect to WebSocket
+      connectWebSocket(data.session_uuid);
+    } catch (err) {
+      setError('Failed to create session: ' + (err as Error).message);
+    }
+  };
+
+  const connectWebSocket = (uuid: string) => {
+    const ws = new WebSocket(`ws://localhost:8000/ws/${uuid}`);
+    
+    ws.onopen = () => {
+      setConnectionStatus('connected');
+      setError('');
+    };
+
+    ws.onmessage = (event) => {
+      const data: WebSocketMessage = JSON.parse(event.data);
+      console.log('WebSocket message received:', data);
+      
+      if (data.type === 'session_state' && data.session) {
+        setSessionData(data.session);
+      } else if (data.type === 'test_response') {
+        console.log('Test connection response:', data.message);
+        setError(''); // Clear any previous errors
+      } else if (data.error) {
+        setError(data.error);
+      }
+    };
+
+    ws.onclose = () => {
+      setConnectionStatus('disconnected');
+    };
+
+    ws.onerror = () => {
+      setError('WebSocket connection error');
+      setConnectionStatus('error');
+    };
+
+    setWebsocket(ws);
+  };
+
+  const testConnection = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Sending test connection message...');
+      websocket.send(JSON.stringify({ type: 'test_connection' }));
+    } else {
+      console.log('WebSocket not connected');
+    }
+  };
+
+  const getSessionState = () => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log('Requesting session state...');
+      websocket.send(JSON.stringify({ type: 'get_state' }));
+    } else {
+      console.log('WebSocket not connected');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [websocket]);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Intesa Vincente - Controller</h1>
+        
+        {error && <div className="error">{error}</div>}
+        
+        <div className="status">
+          Connection: <span className={connectionStatus}>{connectionStatus}</span>
+        </div>
+
+        {!sessionUuid ? (
+          <div className="session-creation">
+            <h2>Create Session</h2>
+            <input
+              type="text"
+              placeholder="Enter API Key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+            <button onClick={createSession}>Create Session</button>
+          </div>
+        ) : (
+          <div className="controller-panel">
+            <h2>Session: {sessionUuid}</h2>
+            
+            <div className="controls">
+              <button onClick={testConnection}>Test Connection</button>
+              <button onClick={getSessionState}>Get State</button>
+            </div>
+
+            {sessionData && (
+              <div className="session-info">
+                <h3>Session Data</h3>
+                <p>State: {sessionData.state}</p>
+                <p>Connected Clients: {sessionData.connected_clients.join(', ')}</p>
+                <p>Timer: {sessionData.timer}s</p>
+                <div className="stats">
+                  <p>Correct: {sessionData.stats.correct}</p>
+                  <p>Incorrect: {sessionData.stats.incorrect}</p>
+                  <p>Total Points: {sessionData.stats.total_points}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </header>
+    </div>
+  );
+}
+
+export default App;
