@@ -82,6 +82,14 @@
   background-color: #da190b !important;
 }
 
+.reset-btn {
+  background-color: #ff9800 !important;
+}
+
+.reset-btn:hover {
+  background-color: #f57c00 !important;
+}
+
 .controls button:disabled {
   background-color: #555 !important;
   color: #999 !important;
@@ -223,11 +231,13 @@
   background-color: #da190b;
 }
 
-.skip-btn {
-  background-color: #ff9800;
-  color: white;
+
+.word-btn:disabled {
+  background-color: #555 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
 }
 
-.skip-btn:hover {
-  background-color: #f57c00;
+.word-btn:disabled:hover {
+  background-color: #555 !important;
 }

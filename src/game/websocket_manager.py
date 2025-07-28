@@ -85,8 +85,9 @@ class WebSocketManager:
             elif data.get("type") == "mark_word_incorrect" and client_type == "controller":
                 await self._mark_word_incorrect(session_uuid)
             
-            elif data.get("type") == "skip_word" and client_type == "controller":
-                await self._skip_word(session_uuid)
+            
+            elif data.get("type") == "reset_game" and client_type == "controller":
+                await self._reset_game(session_uuid)
     
     async def _send_session_state(self, websocket: WebSocket, session: dict):
         print(f"Sending session state: {session}")
@@ -151,12 +152,17 @@ class WebSocketManager:
         await self._broadcast_session_state(session_uuid)
     
     async def _mark_word_correct(self, session_uuid: str):
+        print(f"_mark_word_correct called for session {session_uuid}")
         session = self.session_manager.get_session(session_uuid)
         if not session or not session.get("current_word"):
+            print("No session or current word found")
             return
         
+        current_word = session["current_word"]
+        print(f"Marking word '{current_word}' as correct")
+        
         # Mark word as used and update stats
-        self.session_manager.mark_word_used(session_uuid, session["current_word"])
+        self.session_manager.mark_word_used(session_uuid, current_word)
         session["stats"]["correct"] += 1
         session["stats"]["total_points"] += 1
         
@@ -164,28 +170,23 @@ class WebSocketManager:
         await self._pick_new_word_and_continue(session_uuid)
     
     async def _mark_word_incorrect(self, session_uuid: str):
+        print(f"_mark_word_incorrect called for session {session_uuid}")
         session = self.session_manager.get_session(session_uuid)
         if not session or not session.get("current_word"):
+            print("No session or current word found")
             return
         
+        current_word = session["current_word"]
+        print(f"Marking word '{current_word}' as incorrect")
+        
         # Mark word as used and update stats
-        self.session_manager.mark_word_used(session_uuid, session["current_word"])
+        self.session_manager.mark_word_used(session_uuid, current_word)
         session["stats"]["incorrect"] += 1
         session["stats"]["total_points"] -= 1
         
         # Pick new word and continue
         await self._pick_new_word_and_continue(session_uuid)
     
-    async def _skip_word(self, session_uuid: str):
-        session = self.session_manager.get_session(session_uuid)
-        if not session or not session.get("current_word"):
-            return
-        
-        # Mark word as used (no point change for skip)
-        self.session_manager.mark_word_used(session_uuid, session["current_word"])
-        
-        # Pick new word and continue
-        await self._pick_new_word_and_continue(session_uuid)
     
     async def _pick_new_word_and_continue(self, session_uuid: str):
         session = self.session_manager.get_session(session_uuid)
@@ -220,6 +221,32 @@ class WebSocketManager:
                     self._run_timer(session_uuid)
                 )
         
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _reset_game(self, session_uuid: str):
+        print(f"_reset_game called for session {session_uuid}")
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            print("No session found")
+            return
+        
+        # Stop timer if running
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+            del self.timer_tasks[session_uuid]
+        
+        # Reset session state
+        session["state"] = "lobby"
+        session["timer"] = 60
+        session["current_word"] = None
+        session["stats"]["correct"] = 0
+        session["stats"]["incorrect"] = 0
+        session["stats"]["total_points"] = 0
+        
+        # Clear used words
+        self.session_manager.clear_used_words(session_uuid)
+        
+        print(f"Game reset for session {session_uuid}")
         await self._broadcast_session_state(session_uuid)
     
     async def _run_timer(self, session_uuid: str):

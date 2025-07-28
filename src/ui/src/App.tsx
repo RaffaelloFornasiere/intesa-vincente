@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { getLocalIP, getBaseURL, getWebSocketURL } from './utils/network';
 
 interface SessionData {
   uuid: string;
@@ -32,6 +33,7 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [error, setError] = useState<string>('');
+  const [localIP, setLocalIP] = useState<string>('localhost');
 
   const createSession = async () => {
     if (!apiKey) {
@@ -40,7 +42,7 @@ function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/create-session', {
+      const response = await fetch(`${getBaseURL(localIP)}/create-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +66,7 @@ function App() {
   };
 
   const connectWebSocket = (uuid: string) => {
-    const ws = new WebSocket(`ws://localhost:8000/ws/${uuid}`);
+    const ws = new WebSocket(getWebSocketURL(localIP, uuid));
     
     ws.onopen = () => {
       setConnectionStatus('connected');
@@ -148,6 +150,8 @@ function App() {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
       console.log('Marking word as correct...');
       websocket.send(JSON.stringify({ type: 'mark_word_correct' }));
+    } else {
+      console.log('WebSocket not connected for mark_word_correct');
     }
   };
 
@@ -155,15 +159,28 @@ function App() {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
       console.log('Marking word as incorrect...');
       websocket.send(JSON.stringify({ type: 'mark_word_incorrect' }));
+    } else {
+      console.log('WebSocket not connected for mark_word_incorrect');
     }
   };
 
-  const skipWord = () => {
+
+  const resetGame = () => {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
-      console.log('Skipping word...');
-      websocket.send(JSON.stringify({ type: 'skip_word' }));
+      console.log('Resetting game...');
+      websocket.send(JSON.stringify({ type: 'reset_game' }));
+    } else {
+      console.log('WebSocket not connected for reset_game');
     }
   };
+
+  // Auto-detect local IP on component mount
+  useEffect(() => {
+    getLocalIP().then(ip => {
+      console.log('Detected local IP:', ip);
+      setLocalIP(ip);
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -182,6 +199,8 @@ function App() {
         
         <div className="status">
           Connection: <span className={connectionStatus}>{connectionStatus}</span>
+          <br />
+          Server: {getBaseURL(localIP)}
         </div>
 
         {!sessionUuid ? (
@@ -216,6 +235,7 @@ function App() {
               >
                 Stop Game
               </button>
+              <button onClick={resetGame} className="reset-btn">Reset Game</button>
             </div>
 
             <div className="timer-controls">
@@ -231,9 +251,20 @@ function App() {
             {sessionData?.current_word && (
               <div className="word-controls">
                 <h4>Word Actions</h4>
-                <button onClick={markWordCorrect} className="word-btn correct-btn">✓ Correct (+1)</button>
-                <button onClick={markWordIncorrect} className="word-btn incorrect-btn">✗ Incorrect (-1)</button>
-                <button onClick={skipWord} className="word-btn skip-btn">⏭ Skip (0)</button>
+                <button 
+                  onClick={markWordCorrect} 
+                  className="word-btn correct-btn"
+                  disabled={sessionData?.state === 'playing'}
+                >
+                  ✓ Correct (+1)
+                </button>
+                <button 
+                  onClick={markWordIncorrect} 
+                  className="word-btn incorrect-btn"
+                  disabled={sessionData?.state === 'playing'}
+                >
+                  ✗ Incorrect (-1)
+                </button>
               </div>
             )}
 

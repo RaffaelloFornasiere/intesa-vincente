@@ -77,11 +77,35 @@ class SessionManager:
         return word
     
     def mark_word_used(self, session_uuid: str, word: str):
+        print(f"Marking word '{word}' as used for session {session_uuid}")
         session_dir = self.sessions_dir / session_uuid
         used_words_file = session_dir / "used_words.json"
         
         if used_words_file.exists():
             used_words = json.loads(used_words_file.read_text())
+            print(f"Current used words: {used_words}")
             if word not in used_words:
                 used_words.append(word)
-                used_words_file.write_text(json.dumps(used_words, indent=2))
+                with open(used_words_file, 'w') as f:
+                    json.dump(used_words, f, indent=2)
+                    f.flush()  # Force flush to disk
+                    os.fsync(f.fileno())  # Force OS to write to disk
+                print(f"Added '{word}' to used words. New list: {used_words}")
+            else:
+                print(f"Word '{word}' already in used words")
+        else:
+            print(f"Used words file does not exist: {used_words_file}")
+    
+    def clear_used_words(self, session_uuid: str):
+        print(f"Clearing used words for session {session_uuid}")
+        session_dir = self.sessions_dir / session_uuid
+        used_words_file = session_dir / "used_words.json"
+        
+        if used_words_file.exists():
+            with open(used_words_file, 'w') as f:
+                json.dump([], f, indent=2)
+                f.flush()  # Force flush to disk
+                os.fsync(f.fileno())  # Force OS to write to disk
+            print(f"Cleared used words file: {used_words_file}")
+        else:
+            print(f"Used words file does not exist: {used_words_file}")
