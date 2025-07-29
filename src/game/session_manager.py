@@ -1,8 +1,9 @@
 import os
-import uuid
 import json
+import random
 from pathlib import Path
 from fastapi import HTTPException
+from faker import Faker
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,21 +13,46 @@ class SessionManager:
         self.sessions_dir.mkdir(exist_ok=True)
         self.active_sessions = {}
         self.api_key = os.getenv("INTESA_API_KEY", "test-key-123")
+        self.fake = Faker(['it_IT', 'en_US'])  # Italian and English for variety
+    
+    def _generate_session_code(self) -> str:
+        """Generate a funny, memorable session code using Faker's built-in providers"""
+        patterns = [
+            # Pattern 1: Faker slug (e.g., "three-image-son") 
+            lambda: self.fake.slug(),
+        ]
+        
+        # Pick a random pattern and generate
+        pattern = random.choice(patterns)
+        code = pattern().lower().replace(' ', '-')
+        
+        # Clean and limit length
+        code = ''.join(c for c in code if c.isalnum() or c == '-')[:20]
+        
+        # Ensure uniqueness
+        attempts = 0
+        while code in self.active_sessions and attempts < 10:
+            pattern = random.choice(patterns) 
+            code = pattern().lower().replace(' ', '-')
+            code = ''.join(c for c in code if c.isalnum() or c == '-')[:20]
+            attempts += 1
+            
+        return code
     
     def create_session(self, api_key: str) -> str:
         if api_key != self.api_key:
             raise HTTPException(status_code=403, detail="Invalid API key")
         
-        session_uuid = str(uuid.uuid4())
-        session_dir = self.sessions_dir / session_uuid
+        session_code = self._generate_session_code()
+        session_dir = self.sessions_dir / session_code
         session_dir.mkdir(exist_ok=True)
         
         # Create default word files
         self._create_default_files(session_dir)
         
         # Initialize session state
-        self.active_sessions[session_uuid] = {
-            "uuid": session_uuid,
+        self.active_sessions[session_code] = {
+            "uuid": session_code,
             "state": "lobby",
             "connected_clients": [],
             "timer": 60,
@@ -38,7 +64,7 @@ class SessionManager:
             "current_word": None
         }
         
-        return session_uuid
+        return session_code
     
     def get_session(self, session_uuid: str) -> dict:
         return self.active_sessions.get(session_uuid)

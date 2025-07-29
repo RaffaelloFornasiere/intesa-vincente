@@ -12,7 +12,7 @@ class WebSocketManager:
     def set_session_manager(self, session_manager: SessionManager):
         self.session_manager = session_manager
     
-    async def connect(self, websocket: WebSocket, session_uuid: str, client_type: str):
+    async def connect(self, websocket: WebSocket, session_uuid: str, client_type: str = None):
         await websocket.accept()
         
         if not self.session_manager:
@@ -26,21 +26,37 @@ class WebSocketManager:
             await websocket.close()
             return
         
-        # Store connection
-        connection_id = f"{session_uuid}_{client_type}"
-        self.connections[connection_id] = websocket
-        
-        # Add to session
-        if client_type not in session["connected_clients"]:
-            session["connected_clients"].append(client_type)
-        
-        # Send initial state
-        await self._send_session_state(websocket, session)
-        
         try:
+            # If client_type not provided, wait for connect message
+            if client_type is None:
+                first_message = await websocket.receive_json()
+                if first_message.get("type") == "connect":
+                    client_type = first_message.get("client_type")
+                    if not client_type:
+                        await websocket.send_json({"error": "Client type required"})
+                        await websocket.close()
+                        return
+                else:
+                    await websocket.send_json({"error": "Expected connect message"})
+                    await websocket.close()
+                    return
+            
+            # Store connection
+            connection_id = f"{session_uuid}_{client_type}"
+            self.connections[connection_id] = websocket
+            
+            # Add to session
+            if client_type not in session["connected_clients"]:
+                session["connected_clients"].append(client_type)
+            
+            # Send initial state
+            await self._send_session_state(websocket, session)
+            
             await self._handle_messages(websocket, session_uuid, client_type)
         except WebSocketDisconnect:
-            await self._disconnect(connection_id, session, client_type)
+            if client_type:
+                connection_id = f"{session_uuid}_{client_type}"
+                await self._disconnect(connection_id, session, client_type)
     
     async def _handle_messages(self, websocket: WebSocket, session_uuid: str, client_type: str):
         while True:
@@ -85,6 +101,12 @@ class WebSocketManager:
             elif data.get("type") == "mark_word_incorrect" and client_type == "controller":
                 await self._mark_word_incorrect(session_uuid)
             
+            elif data.get("type") == "pass_word" and client_type in ["word_giver_1", "word_giver_2"]:
+                await self._pass_word(session_uuid)
+            
+            elif data.get("type") == "request_guess" and client_type == "word_guesser":
+                print(f"Word guesser requesting guess for session {session_uuid}")
+                await self._request_guess(session_uuid)
             
             elif data.get("type") == "reset_game" and client_type == "controller":
                 await self._reset_game(session_uuid)
@@ -102,21 +124,27 @@ class WebSocketManager:
         if not session:
             return
         
-        # Pick a new word
-        word = self.session_manager.pick_new_word(session_uuid)
-        if not word:
-            await self._broadcast_to_session(session_uuid, {
-                "type": "error",
-                "message": "No more words available"
-            })
-            return
+        # Pick a new word if we don't have one OR if we need a new word (after correct/incorrect)
+        if not session.get("current_word") or session.get("need_new_word"):
+            word = self.session_manager.pick_new_word(session_uuid)
+            if not word:
+                await self._broadcast_to_session(session_uuid, {
+                    "type": "error",  
+                    "message": "No more words available"
+                })
+                return
+            
+            # New word - restore saved timer value or use 60 for first word
+            session["current_word"] = word
+            if session.get("saved_timer"):
+                session["timer"] = session["saved_timer"]
+                session["saved_timer"] = None  # Clear saved timer
+            elif not session.get("timer") or session.get("timer") == 0:
+                session["timer"] = 60
+            session["need_new_word"] = False
         
-        # Start game
+        # Start/resume game (keep existing timer if resuming)
         session["state"] = "playing"
-        # Only reset timer to 60 when picking a new word (not resuming)
-        if session["current_word"] != word:
-            session["timer"] = 60
-        session["current_word"] = word
         
         # Start timer
         if session_uuid in self.timer_tasks:
@@ -166,8 +194,19 @@ class WebSocketManager:
         session["stats"]["correct"] += 1
         session["stats"]["total_points"] += 1
         
-        # Pick new word and continue
-        await self._pick_new_word_and_continue(session_uuid)
+        # Pause game - controller needs to start next round
+        session["state"] = "paused"
+        # Keep current_word but mark that we need a new word next time
+        session["need_new_word"] = True
+        
+        # Stop timer if running and preserve the timer value
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+            del self.timer_tasks[session_uuid]
+        # Store current timer value for next round
+        session["saved_timer"] = session["timer"]
+        
+        await self._broadcast_session_state(session_uuid)
     
     async def _mark_word_incorrect(self, session_uuid: str):
         print(f"_mark_word_incorrect called for session {session_uuid}")
@@ -184,8 +223,19 @@ class WebSocketManager:
         session["stats"]["incorrect"] += 1
         session["stats"]["total_points"] -= 1
         
-        # Pick new word and continue
-        await self._pick_new_word_and_continue(session_uuid)
+        # Pause game - controller needs to start next round
+        session["state"] = "paused"
+        # Keep current_word but mark that we need a new word next time
+        session["need_new_word"] = True
+        
+        # Stop timer if running and preserve the timer value
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+            del self.timer_tasks[session_uuid]
+        # Store current timer value for next round
+        session["saved_timer"] = session["timer"]
+        
+        await self._broadcast_session_state(session_uuid)
     
     
     async def _pick_new_word_and_continue(self, session_uuid: str):
@@ -222,6 +272,68 @@ class WebSocketManager:
                 )
         
         await self._broadcast_session_state(session_uuid)
+    
+    async def _pass_word(self, session_uuid: str):
+        """Handle word pass - stops the game (controller must restart)"""
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            return
+        
+        # Stop the game (similar to stop_game but triggered by word giver)
+        session["state"] = "paused"
+        
+        # Stop timer
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+            del self.timer_tasks[session_uuid]
+        
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _request_guess(self, session_uuid: str):
+        """Handle guess request - stops the game and starts 5s countdown"""
+        print(f"_request_guess called for session {session_uuid}")
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            print("No session found")
+            return
+        
+        print(f"Current session state: {session['state']}")
+        
+        # Stop the game
+        session["state"] = "guessing"
+        
+        # Stop timer
+        if session_uuid in self.timer_tasks:
+            self.timer_tasks[session_uuid].cancel()
+            del self.timer_tasks[session_uuid]
+            print("Timer task cancelled")
+        
+        await self._broadcast_session_state(session_uuid)
+        print("Session state broadcasted")
+        
+        # Start 5-second countdown as a task
+        print("Starting countdown task")
+        asyncio.create_task(self._start_guess_countdown(session_uuid))
+    
+    async def _start_guess_countdown(self, session_uuid: str):
+        """Run 5-second countdown for guessing"""
+        for seconds in range(5, 0, -1):
+            await self._broadcast_to_session(session_uuid, {
+                "type": "countdown",
+                "seconds": seconds
+            })
+            await asyncio.sleep(1)
+        
+        # Countdown finished - return to paused state
+        await self._broadcast_to_session(session_uuid, {
+            "type": "countdown",
+            "seconds": 0
+        })
+        
+        session = self.session_manager.get_session(session_uuid)
+        if session:
+            session["state"] = "paused"
+            await self._broadcast_session_state(session_uuid)
     
     async def _reset_game(self, session_uuid: str):
         print(f"_reset_game called for session {session_uuid}")
@@ -265,11 +377,15 @@ class WebSocketManager:
                     "timer": session["timer"]
                 })
                 
-            # Timer expired
+            # Timer expired - start guess countdown automatically
             session = self.session_manager.get_session(session_uuid)
             if session:
-                session["state"] = "paused"
+                print(f"Timer expired for session {session_uuid}, starting guess countdown")
+                session["state"] = "guessing"
                 await self._broadcast_session_state(session_uuid)
+                
+                # Start 5-second countdown automatically
+                asyncio.create_task(self._start_guess_countdown(session_uuid))
                 
         except asyncio.CancelledError:
             pass
@@ -298,8 +414,16 @@ class WebSocketManager:
                     del self.connections[conn_id]
     
     async def _disconnect(self, connection_id: str, session: dict, client_type: str):
+        """Handle client disconnection"""
+        print(f"Client {client_type} disconnected from session {session['uuid']}")
+        
+        # Remove from connections
         if connection_id in self.connections:
             del self.connections[connection_id]
         
+        # Remove from session
         if client_type in session["connected_clients"]:
             session["connected_clients"].remove(client_type)
+        
+        # Broadcast updated state
+        await self._broadcast_session_state(session["uuid"])

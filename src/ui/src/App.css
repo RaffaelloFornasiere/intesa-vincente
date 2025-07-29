@@ -158,6 +158,7 @@
 .status-lobby { color: #ffc107; }
 .status-playing { color: #4caf50; }
 .status-paused { color: #ff9800; }
+.status-guessing { color: #f44336; }
 
 .stats h4 {
   margin-bottom: 10px;
@@ -240,4 +241,365 @@
 
 .word-btn:disabled:hover {
   background-color: #555 !important;
+}
+
+/* Word Giver Styles */
+.session-connection {
+  margin: 30px 0;
+}
+
+.session-connection input {
+  padding: 10px;
+  margin: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+}
+
+.client-type-selection {
+  margin: 20px 0;
+}
+
+.client-type-selection label {
+  display: block;
+  margin: 10px 0;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.client-type-selection input[type="radio"] {
+  margin-right: 10px;
+  transform: scale(1.2);
+}
+
+.word-giver-panel {
+  margin: 30px 0;
+}
+
+.game-display {
+  margin: 20px 0;
+}
+
+.current-word-display {
+  background-color: #333;
+  padding: 30px;
+  margin: 20px 0;
+  border-radius: 12px;
+  border: 3px solid #4caf50;
+}
+
+.target-word {
+  font-size: 48px;
+  font-weight: bold;
+  color: #4caf50;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.word-giver-controls {
+  margin: 30px 0;
+}
+
+.pass-btn {
+  padding: 15px 30px;
+  font-size: 24px;
+  font-weight: bold;
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.pass-btn:hover {
+  background-color: #f57c00;
+}
+
+.pass-btn:disabled {
+  background-color: #555 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+.stats-display {
+  background-color: #444;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 8px;
+}
+
+.stats-display h4 {
+  color: #4caf50;
+  margin-bottom: 15px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+.stat-item {
+  background-color: #555;
+  padding: 15px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 14px;
+  color: #ccc;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #4caf50;
+}
+
+.game-status {
+  background-color: #333;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.game-status p {
+  margin: 0;
+  font-size: 18px;
+}
+
+/* Login Screen Styles */
+.login-screen {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.server-info {
+  background-color: #333;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 15px 0;
+  font-family: monospace;
+  font-size: 14px;
+  color: #4caf50;
+}
+
+.role-selection {
+  margin: 30px 0;
+}
+
+.role-selection h3 {
+  color: #4caf50;
+  margin-bottom: 20px;
+}
+
+.role-option {
+  margin: 15px 0;
+  border: 2px solid #555;
+  border-radius: 8px;
+  transition: border-color 0.3s;
+}
+
+.role-option:hover {
+  border-color: #4caf50;
+}
+
+.role-label {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.role-label input[type="radio"] {
+  margin-right: 15px;
+  margin-top: 5px;
+  transform: scale(1.3);
+}
+
+.role-info {
+  flex: 1;
+}
+
+.role-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #4caf50;
+  margin-bottom: 5px;
+}
+
+.role-description {
+  font-size: 14px;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+.login-form {
+  margin: 30px 0;
+}
+
+.form-group {
+  margin: 20px 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #4caf50;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background-color: #444;
+  color: white;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 5px;
+  color: #999;
+  font-size: 12px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  font-weight: bold;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.login-btn:hover {
+  background-color: #45a049;
+}
+
+.session-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.session-header h2 {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.copy-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background-color: #1976d2;
+  transform: translateY(-1px);
+}
+
+.copy-btn:active {
+  transform: translateY(0);
+}
+
+.session-share {
+  background-color: #333;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 15px 0;
+  font-size: 14px;
+  color: #4caf50;
+  border-left: 4px solid #4caf50;
+}
+
+/* Word Guesser Styles */
+.word-guesser-controls {
+  margin: 30px 0;
+}
+
+.stop-guess-btn {
+  padding: 20px 40px;
+  font-size: 24px;
+  font-weight: bold;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-bottom: 15px;
+}
+
+.stop-guess-btn:hover {
+  background-color: #da190b;
+}
+
+.stop-guess-btn:disabled {
+  background-color: #555 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+.instruction {
+  font-size: 16px;
+  color: #ccc;
+  margin: 10px 0;
+}
+
+.countdown-screen {
+  text-align: center;
+  padding: 50px 0;
+}
+
+.countdown-timer {
+  font-size: 120px;
+  font-weight: bold;
+  color: #f44336;
+  margin: 30px 0;
+  text-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+}
+
+.countdown-screen h1 {
+  font-size: 36px;
+  color: #4caf50;
+  margin-bottom: 20px;
+}
+
+.countdown-screen p {
+  font-size: 20px;
+  color: #ccc;
 }
