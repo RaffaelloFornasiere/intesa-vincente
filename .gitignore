@@ -2,3 +2,5 @@
 .idea
 sessions/
 .env
+
+words_final.json
