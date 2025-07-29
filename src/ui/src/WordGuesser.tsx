@@ -111,11 +111,11 @@ function WordGuesser({ sessionUuid, localIP }: WordGuesserProps) {
       <div className="App">
         <header className="App-header">
           <div className="countdown-screen">
-            <h1>Make Your Guess!</h1>
+            <h1>Indovina la parola!</h1>
             <div className="countdown-timer">
               {countdownSeconds}
             </div>
-            <p>Say your guess out loud before time runs out!</p>
+            <p>Indovina la parola ad alta voce prima che scada il tempo!</p>
           </div>
         </header>
       </div>
@@ -125,23 +125,23 @@ function WordGuesser({ sessionUuid, localIP }: WordGuesserProps) {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Intesa Vincente - Word Guesser</h1>
+        <h1>Intesa Vincente - Indovinatore</h1>
         
         {error && <div className="error">{error}</div>}
         
         <div className="status">
-          Connection: <span className={connectionStatus}>{connectionStatus}</span>
+          Connessione: <span className={connectionStatus}>{connectionStatus === 'connected' ? 'connesso' : connectionStatus === 'disconnected' ? 'disconnesso' : 'errore'}</span>
           <br />
           Server: {getBaseURL(localIP)}
         </div>
 
         {connectionStatus === 'connected' && sessionData && (
           <div className="word-guesser-panel">
-            <h2>Session: {sessionUuid}</h2>
+            <h2>Sessione: {sessionUuid}</h2>
             
             <div className="game-display">
               <div className="game-status">
-                <p>State: <span className={`status-${sessionData.state}`}>{sessionData.state}</span></p>
+                <p>Stato: <span className={`status-${sessionData.state}`}>{sessionData.state === 'playing' ? 'in gioco' : sessionData.state === 'paused' ? 'in pausa' : sessionData.state === 'guessing' ? 'indovinando' : sessionData.state}</span></p>
                 <p className="timer">
                   Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span>
                 </p>
@@ -153,29 +153,29 @@ function WordGuesser({ sessionUuid, localIP }: WordGuesserProps) {
                   className="stop-guess-btn"
                   disabled={sessionData.state !== 'playing'}
                 >
-                  Stop & Guess
+                  Ferma e Indovina
                 </button>
                 <p className="instruction">
                   {sessionData.state === 'playing' 
-                    ? 'Listen to the clues and press "Stop & Guess" when you know the word!'
-                    : 'Waiting for the game to start...'
+                    ? 'Ascolta gli indizi e premi "Ferma e Indovina" quando conosci la parola!'
+                    : 'Aspettando l\'inizio del gioco...'
                   }
                 </p>
               </div>
 
               <div className="stats-display">
-                <h4>Team Statistics</h4>
+                <h4>Statistiche Squadra</h4>
                 <div className="stats-grid">
                   <div className="stat-item">
-                    <span className="stat-label">Correct:</span>
+                    <span className="stat-label">Corrette:</span>
                     <span className="stat-value">{sessionData.stats.correct}</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-label">Incorrect:</span>
+                    <span className="stat-label">Sbagliate:</span>
                     <span className="stat-value">{sessionData.stats.incorrect}</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-label">Total Points:</span>
+                    <span className="stat-label">Punti Totali:</span>
                     <span className="stat-value">{sessionData.stats.total_points}</span>
                   </div>
                 </div>

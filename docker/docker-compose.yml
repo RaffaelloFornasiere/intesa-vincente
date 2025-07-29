@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  intesa-vincente:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "9898:9898"
+    environment:
+      - INTESA_API_KEY=${INTESA_API_KEY:-test-key-123}
+    volumes:
+      - ../sessions:/app/sessions
+      - ../words.json:/app/words.json
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9898/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

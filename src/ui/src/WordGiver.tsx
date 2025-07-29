@@ -107,25 +107,25 @@ function WordGiver({ sessionUuid, clientType, localIP }: WordGiverProps) {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Intesa Vincente - Word Giver</h1>
+        <h1>Intesa Vincente - Suggeritore</h1>
         
         {error && <div className="error">{error}</div>}
         
         <div className="status">
-          Connection: <span className={connectionStatus}>{connectionStatus}</span>
+          Connessione: <span className={connectionStatus}>{connectionStatus === 'connected' ? 'connesso' : connectionStatus === 'disconnected' ? 'disconnesso' : 'errore'}</span>
           <br />
           Server: {getBaseURL(localIP)}
         </div>
 
         {connectionStatus === 'connected' && sessionData ? (
           <div className="word-giver-panel">
-            <h2>Session: {sessionUuid}</h2>
-            <h3>Playing as: {clientType.replace('_', ' ').toUpperCase()}</h3>
+            <h2>Sessione: {sessionUuid}</h2>
+            <h3>Giocando come: {clientType === 'word_giver_1' ? 'SUGGERITORE 1' : 'SUGGERITORE 2'}</h3>
             
             {sessionData && (
               <div className="game-display">
                 <div className="game-status">
-                  <p>State: <span className={`status-${sessionData.state}`}>{sessionData.state}</span></p>
+                  <p>Stato: <span className={`status-${sessionData.state}`}>{sessionData.state === 'playing' ? 'in gioco' : sessionData.state === 'paused' ? 'in pausa' : sessionData.state === 'guessing' ? 'indovinando' : sessionData.state}</span></p>
                   <p className="timer">
                     Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span>
                   </p>
@@ -148,18 +148,18 @@ function WordGiver({ sessionUuid, clientType, localIP }: WordGiverProps) {
                 </div>
 
                 <div className="stats-display">
-                  <h4>Team Statistics</h4>
+                  <h4>Statistiche Squadra</h4>
                   <div className="stats-grid">
                     <div className="stat-item">
-                      <span className="stat-label">Correct:</span>
+                      <span className="stat-label">Corrette:</span>
                       <span className="stat-value">{sessionData.stats.correct}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-label">Incorrect:</span>
+                      <span className="stat-label">Sbagliate:</span>
                       <span className="stat-value">{sessionData.stats.incorrect}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-label">Total Points:</span>
+                      <span className="stat-label">Punti Totali:</span>
                       <span className="stat-value">{sessionData.stats.total_points}</span>
                     </div>
                   </div>
@@ -168,7 +168,7 @@ function WordGiver({ sessionUuid, clientType, localIP }: WordGiverProps) {
             )}
           </div>
         ) : (
-          <div>Connecting to session {sessionUuid} as {clientType.replace('_', ' ').toUpperCase()}...</div>
+          <div>Connettendo alla sessione {sessionUuid} come {clientType === 'word_giver_1' ? 'SUGGERITORE 1' : 'SUGGERITORE 2'}...</div>
         )}
       </header>
     </div>

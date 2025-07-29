@@ -186,7 +186,7 @@ function Controller({ apiKey, localIP }: ControllerProps) {
   const copySessionCode = async () => {
     try {
       await navigator.clipboard.writeText(sessionUuid);
-      setCopySuccess('Copied!');
+      setCopySuccess('Copiato!');
       setTimeout(() => setCopySuccess(''), 2000);
     } catch (err) {
       // Fallback for older browsers
@@ -196,7 +196,7 @@ function Controller({ apiKey, localIP }: ControllerProps) {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopySuccess('Copied!');
+      setCopySuccess('Copiato!');
       setTimeout(() => setCopySuccess(''), 2000);
     }
   };
@@ -212,12 +212,12 @@ function Controller({ apiKey, localIP }: ControllerProps) {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Intesa Vincente - Controller</h1>
+        <h1>Intesa Vincente - Controllore</h1>
         
         {error && <div className="error">{error}</div>}
         
         <div className="status">
-          Connection: <span className={connectionStatus}>{connectionStatus}</span>
+          Connessione: <span className={connectionStatus}>{connectionStatus === 'connected' ? 'connesso' : connectionStatus === 'disconnected' ? 'disconnesso' : 'errore'}</span>
           <br />
           Server: {getBaseURL(localIP)}
         </div>
@@ -225,35 +225,35 @@ function Controller({ apiKey, localIP }: ControllerProps) {
         {sessionUuid ? (
           <div className="controller-panel">
             <div className="session-header">
-              <h2>Session Code: {sessionUuid}</h2>
+              <h2>Codice Sessione: {sessionUuid}</h2>
               <button onClick={copySessionCode} className="copy-btn">
-                📋 {copySuccess || 'Copy'}
+                📋 {copySuccess || 'Copia'}
               </button>
             </div>
-            <p className="session-share">Share this code with other players to join the game</p>
+            <p className="session-share">Condividi questo codice con gli altri giocatori per entrare nel gioco</p>
             
             <div className="controls">
-              <button onClick={testConnection}>Test Connection</button>
-              <button onClick={getSessionState}>Get State</button>
+              <button onClick={testConnection}>Testa Connessione</button>
+              <button onClick={getSessionState}>Ottieni Stato</button>
               <button 
                 onClick={startGame} 
                 className="start-btn"
                 disabled={sessionData?.state === 'playing'}
               >
-                Start Game
+                Inizia Gioco
               </button>
               <button 
                 onClick={stopGame} 
                 className="stop-btn"
                 disabled={sessionData?.state !== 'playing'}
               >
-                Stop Game
+                Ferma Gioco
               </button>
-              <button onClick={resetGame} className="reset-btn">Reset Game</button>
+              <button onClick={resetGame} className="reset-btn">Resetta Gioco</button>
             </div>
 
             <div className="timer-controls">
-              <h4>Timer Controls</h4>
+              <h4>Controlli Timer</h4>
               <button onClick={() => adjustTimer(-10)} className="timer-btn">-10s</button>
               <button onClick={() => adjustTimer(-5)} className="timer-btn">-5s</button>
               <button onClick={() => adjustTimer(-1)} className="timer-btn">-1s</button>
@@ -264,44 +264,44 @@ function Controller({ apiKey, localIP }: ControllerProps) {
 
             {sessionData?.current_word && (
               <div className="word-controls">
-                <h4>Word Actions</h4>
+                <h4>Azioni Parola</h4>
                 <button 
                   onClick={markWordCorrect} 
                   className="word-btn correct-btn"
                   disabled={sessionData?.state === 'playing'}
                 >
-                  ✓ Correct (+1)
+                  ✓ Corretto (+1)
                 </button>
                 <button 
                   onClick={markWordIncorrect} 
                   className="word-btn incorrect-btn"
                   disabled={sessionData?.state === 'playing'}
                 >
-                  ✗ Incorrect (-1)
+                  ✗ Sbagliato (-1)
                 </button>
               </div>
             )}
 
             {sessionData && (
               <div className="session-info">
-                <h3>Game Status</h3>
-                <p>State: <span className={`status-${sessionData.state}`}>{sessionData.state}</span></p>
+                <h3>Stato Gioco</h3>
+                <p>Stato: <span className={`status-${sessionData.state}`}>{sessionData.state === 'playing' ? 'in gioco' : sessionData.state === 'paused' ? 'in pausa' : sessionData.state === 'guessing' ? 'indovinando' : sessionData.state}</span></p>
                 {sessionData.current_word && (
-                  <p className="current-word">Current Word: <strong>{sessionData.current_word}</strong></p>
+                  <p className="current-word">Parola Corrente: <strong>{sessionData.current_word}</strong></p>
                 )}
                 <p className="timer">Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span></p>
-                <p>Connected Clients: {sessionData.connected_clients.join(', ')}</p>
+                <p>Client Connessi: {sessionData.connected_clients.join(', ')}</p>
                 <div className="stats">
-                  <h4>Statistics</h4>
-                  <p>Correct: {sessionData.stats.correct}</p>
-                  <p>Incorrect: {sessionData.stats.incorrect}</p>
-                  <p>Total Points: {sessionData.stats.total_points}</p>
+                  <h4>Statistiche</h4>
+                  <p>Corrette: {sessionData.stats.correct}</p>
+                  <p>Sbagliate: {sessionData.stats.incorrect}</p>
+                  <p>Punti Totali: {sessionData.stats.total_points}</p>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div>Creating session...</div>
+          <div>Creando sessione...</div>
         )}
       </header>
     </div>

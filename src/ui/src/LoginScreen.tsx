@@ -19,14 +19,14 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
 
     if (selectedRole === 'controller') {
       if (!apiKey) {
-        setError('API key is required for Controller');
+        setError('La API key è richiesta per il Controllore');
         return;
       }
       // For controller, we'll create a new session
       onLogin(selectedRole, '', apiKey);
     } else {
       if (!sessionUuid) {
-        setError('Session UUID is required');
+        setError('Il codice sessione è richiesto');
         return;
       }
       onLogin(selectedRole, sessionUuid);
@@ -35,26 +35,26 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
 
   const getRoleDisplayName = (role: ClientRole): string => {
     switch (role) {
-      case 'controller': return 'Controller';
-      case 'word_giver_1': return 'Word Giver 1';
-      case 'word_giver_2': return 'Word Giver 2';
-      case 'word_guesser': return 'Word Guesser';
+      case 'controller': return 'Controllore';
+      case 'word_giver_1': return 'Suggeritore 1';
+      case 'word_giver_2': return 'Suggeritore 2';
+      case 'word_guesser': return 'Indovinatore';
     }
   };
 
   const getRoleDescription = (role: ClientRole): string => {
     switch (role) {
-      case 'controller': return 'Manages the game, sees target word, controls timer and scoring';
-      case 'word_giver_1': return 'Gives word clues to help the guesser, sees target word and timer';
-      case 'word_giver_2': return 'Gives word clues to help the guesser, sees target word and timer';
-      case 'word_guesser': return 'Guesses the target word based on clues, sees timer and can stop the game';
+      case 'controller': return 'Gestisce il gioco, vede la parola obiettivo, controlla il timer e il punteggio';
+      case 'word_giver_1': return 'Dà indizi per aiutare l\'indovinatore, vede la parola obiettivo e il timer';
+      case 'word_giver_2': return 'Dà indizi per aiutare l\'indovinatore, vede la parola obiettivo e il timer';
+      case 'word_guesser': return 'Indovina la parola obiettivo basandosi sugli indizi, vede il timer e può fermare il gioco';
     }
   };
 
   return (
     <div className="login-screen">
       <h1>Intesa Vincente</h1>
-      <p>Select your role to join the game</p>
+      <p>Seleziona il tuo ruolo per entrare nel gioco</p>
       
       {error && <div className="error">{error}</div>}
       
@@ -63,7 +63,7 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
       </div>
 
       <div className="role-selection">
-        <h3>Select Your Role</h3>
+        <h3>Seleziona il Tuo Ruolo</h3>
         {(['controller', 'word_giver_1', 'word_giver_2', 'word_guesser'] as ClientRole[]).map((role) => (
           <div key={role} className="role-option">
             <label className="role-label">
@@ -85,31 +85,31 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
       <div className="login-form">
         {selectedRole === 'controller' ? (
           <div className="form-group">
-            <label>API Key (required for Controller)</label>
+            <label>Chiave API (richiesta per il Controllore)</label>
             <input
               type="text"
-              placeholder="Enter API Key"
+              placeholder="Inserisci l'API-key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
-            <small>Controller creates a new game session</small>
+            <small>Il Controllore crea una nuova sessione di gioco</small>
           </div>
         ) : (
           <div className="form-group">
-            <label>Session UUID (get this from the Controller)</label>
+            <label>Codice Sessione (ottienilo dal Controllore)</label>
             <input
               type="text"
-              placeholder="Enter Session UUID"
+              placeholder="Inserisci Codice Sessione"
               value={sessionUuid}
               onChange={(e) => setSessionUuid(e.target.value)}
             />
-            <small>Join an existing game session</small>
+            <small>Unisciti a una sessione di gioco esistente</small>
           </div>
         )}
       </div>
 
       <button onClick={handleLogin} className="login-btn">
-        {selectedRole === 'controller' ? 'Create Session' : 'Join Session'}
+        {selectedRole === 'controller' ? 'Crea Sessione' : 'Unisciti alla Sessione'}
       </button>
     </div>
   );
