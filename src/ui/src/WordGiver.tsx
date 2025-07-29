@@ -141,7 +141,7 @@ function WordGiver({ sessionUuid, clientType, localIP }: WordGiverProps) {
                   <button 
                     onClick={passWord} 
                     className="pass-btn"
-                    disabled={sessionData.state === 'playing'}
+                    disabled={sessionData.state !== 'playing'}
                   >
                     Passo
                   </button>
