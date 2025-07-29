@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
+import { getBaseURL } from './utils/network';
 
 export type ClientRole = 'controller' | 'word_giver_1' | 'word_giver_2' | 'word_guesser';
 
@@ -59,7 +60,7 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
       {error && <div className="error">{error}</div>}
       
       <div className="server-info">
-        Server: http://{localIP}:8000
+        Server: {getBaseURL(localIP)}
       </div>
 
       <div className="role-selection">
