@@ -30,7 +30,8 @@ export const loadSession = (): SessionData | null => {
     const apiKey = params.get('apiKey');
     
     // Validate the session data
-    if (!role || !sessionUuid || !isValidRole(role)) {
+    // Session UUID must exist and not be empty
+    if (!role || !sessionUuid || sessionUuid === '' || !isValidRole(role)) {
       return null;
     }
     

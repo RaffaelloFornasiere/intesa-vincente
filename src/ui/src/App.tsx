@@ -19,8 +19,11 @@ function App() {
     if (key) {
       setApiKey(key);
     }
-    // Save to localStorage (for controller, uuid will be updated later from server response)
-    saveSession(role, uuid, key);
+    // Only save to URL if we have a valid session UUID (not empty string)
+    // For controller, this will be saved later when session is created
+    if (uuid) {
+      saveSession(role, uuid, key);
+    }
   };
 
   const handleLeaveSession = () => {

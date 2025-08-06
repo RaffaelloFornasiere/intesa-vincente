@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from typing import Dict
 from fastapi import WebSocket, WebSocketDisconnect
 from .session_manager import SessionManager
@@ -6,6 +7,8 @@ from .session_manager import SessionManager
 class WebSocketManager:
     def __init__(self):
         self.connections: Dict[str, WebSocket] = {}
+        # Track which session and client type each connection belongs to
+        self.connection_metadata: Dict[str, Dict] = {}
         self.session_manager = None
         self.timer_tasks: Dict[str, asyncio.Task] = {}
     
@@ -41,24 +44,30 @@ class WebSocketManager:
                     await websocket.close()
                     return
             
-            # Store connection
-            connection_id = f"{session_uuid}_{client_type}"
+            # Store connection with unique ID
+            connection_id = str(uuid.uuid4())
             self.connections[connection_id] = websocket
+            self.connection_metadata[connection_id] = {
+                "session_uuid": session_uuid,
+                "client_type": client_type
+            }
+            print(f"Connection established: {connection_id} for {client_type} in session {session_uuid}")
+            print(f"Total connections now: {len(self.connections)}")
             
             # Add to session
             if client_type not in session["connected_clients"]:
                 session["connected_clients"].append(client_type)
+                print(f"Added {client_type} to session {session_uuid} connected_clients")
             
             # Send initial state
             await self._send_session_state(websocket, session)
             
-            await self._handle_messages(websocket, session_uuid, client_type)
+            await self._handle_messages(websocket, session_uuid, client_type, connection_id)
         except WebSocketDisconnect:
-            if client_type:
-                connection_id = f"{session_uuid}_{client_type}"
+            if connection_id:
                 await self._disconnect(connection_id, session, client_type)
     
-    async def _handle_messages(self, websocket: WebSocket, session_uuid: str, client_type: str):
+    async def _handle_messages(self, websocket: WebSocket, session_uuid: str, client_type: str, connection_id: str):
         while True:
             data = await websocket.receive_json()
             session = self.session_manager.get_session(session_uuid)
@@ -399,27 +408,36 @@ class WebSocketManager:
             })
     
     async def _broadcast_to_session(self, session_uuid: str, message: dict):
-        # Find all connections for this session
-        session_connections = [
-            (conn_id, ws) for conn_id, ws in self.connections.items()
-            if conn_id.startswith(session_uuid)
-        ]
+        # Find all connections for this session using metadata
+        session_connections = []
+        for conn_id, metadata in self.connection_metadata.items():
+            if metadata["session_uuid"] == session_uuid and conn_id in self.connections:
+                session_connections.append((conn_id, self.connections[conn_id], metadata["client_type"]))
         
-        for conn_id, websocket in session_connections:
+        print(f"Broadcasting to session {session_uuid}: {len(session_connections)} connections found")
+        print(f"Connection details: {[(conn_id, client_type) for conn_id, _, client_type in session_connections]}")
+        
+        for conn_id, websocket, client_type in session_connections:
             try:
                 await websocket.send_json(message)
-            except:
+                print(f"Message sent successfully to {client_type} (connection {conn_id})")
+            except Exception as e:
+                print(f"Failed to send message to {client_type} (connection {conn_id}): {e}")
                 # Connection might be closed, remove it
                 if conn_id in self.connections:
                     del self.connections[conn_id]
+                if conn_id in self.connection_metadata:
+                    del self.connection_metadata[conn_id]
     
     async def _disconnect(self, connection_id: str, session: dict, client_type: str):
         """Handle client disconnection"""
-        print(f"Client {client_type} disconnected from session {session['uuid']}")
+        print(f"Client {client_type} disconnected from session {session['uuid']} (connection {connection_id})")
         
         # Remove from connections
         if connection_id in self.connections:
             del self.connections[connection_id]
+        if connection_id in self.connection_metadata:
+            del self.connection_metadata[connection_id]
         
         # Remove from session
         if client_type in session["connected_clients"]:
