@@ -30,9 +30,10 @@ interface WordGiverProps {
   sessionUuid: string;
   clientType: 'word_giver_1' | 'word_giver_2';
   localIP: string;
+  onLeaveSession: () => void;
 }
 
-function WordGiver({ sessionUuid, clientType, localIP }: WordGiverProps) {
+function WordGiver({ sessionUuid, clientType, localIP, onLeaveSession }: WordGiverProps) {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
@@ -145,6 +146,7 @@ function WordGiver({ sessionUuid, clientType, localIP }: WordGiverProps) {
                   >
                     Passo
                   </button>
+                  <button onClick={onLeaveSession} className="leave-session-btn">Lascia Sessione</button>
                 </div>
 
                 <div className="stats-display">

@@ -29,10 +29,13 @@ interface WebSocketMessage {
 interface ControllerProps {
   apiKey: string;
   localIP: string;
+  sessionUuid?: string;
+  onLeaveSession: () => void;
+  onSessionCreated: (uuid: string) => void;
 }
 
-function Controller({ apiKey, localIP }: ControllerProps) {
-  const [sessionUuid, setSessionUuid] = useState<string>('');
+function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveSession, onSessionCreated }: ControllerProps) {
+  const [sessionUuid, setSessionUuid] = useState<string>(initialSessionUuid || '');
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
@@ -40,7 +43,13 @@ function Controller({ apiKey, localIP }: ControllerProps) {
   const [copySuccess, setCopySuccess] = useState<string>('');
 
   useEffect(() => {
-    createSession();
+    if (initialSessionUuid) {
+      // Existing session - just connect to WebSocket
+      connectWebSocket(initialSessionUuid);
+    } else {
+      // No existing session - create new one
+      createSession();
+    }
   }, []);
 
   const createSession = async () => {
@@ -60,6 +69,9 @@ function Controller({ apiKey, localIP }: ControllerProps) {
       const data = await response.json();
       setSessionUuid(data.session_uuid);
       setError('');
+      
+      // Notify parent component about session creation
+      onSessionCreated(data.session_uuid);
       
       // Auto-connect to WebSocket
       connectWebSocket(data.session_uuid);
@@ -250,6 +262,7 @@ function Controller({ apiKey, localIP }: ControllerProps) {
                 Ferma Gioco
               </button>
               <button onClick={resetGame} className="reset-btn">Resetta Gioco</button>
+              <button onClick={onLeaveSession} className="leave-session-btn">Lascia Sessione</button>
             </div>
 
             <div className="timer-controls">

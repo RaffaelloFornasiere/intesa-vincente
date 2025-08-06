@@ -29,9 +29,10 @@ interface WebSocketMessage {
 interface WordGuesserProps {
   sessionUuid: string;
   localIP: string;
+  onLeaveSession: () => void;
 }
 
-function WordGuesser({ sessionUuid, localIP }: WordGuesserProps) {
+function WordGuesser({ sessionUuid, localIP, onLeaveSession }: WordGuesserProps) {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
@@ -155,6 +156,7 @@ function WordGuesser({ sessionUuid, localIP }: WordGuesserProps) {
                 >
                   Ferma e Indovina
                 </button>
+                <button onClick={onLeaveSession} className="leave-session-btn">Lascia Sessione</button>
                 <p className="instruction">
                   {sessionData.state === 'playing' 
                     ? 'Ascolta gli indizi e premi "Ferma e Indovina" quando conosci la parola!'

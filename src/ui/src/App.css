@@ -17,6 +17,21 @@
   border-radius: 4px;
 }
 
+.leave-session-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.leave-session-btn:hover {
+  background-color: #d32f2f;
+}
+
 .status {
   margin: 20px 0;
   font-size: 18px;
