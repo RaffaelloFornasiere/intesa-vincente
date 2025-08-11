@@ -13,6 +13,7 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
   const [selectedRole, setSelectedRole] = useState<ClientRole>('controller');
   const [sessionUuid, setSessionUuid] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
+  const [controllerSessionCode, setControllerSessionCode] = useState<string>('');
   const [error, setError] = useState<string>('');
 
   const handleLogin = () => {
@@ -23,8 +24,8 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
         setError('La API key è richiesta per il Controllore');
         return;
       }
-      // For controller, we'll create a new session
-      onLogin(selectedRole, '', apiKey);
+      // For controller, pass session code if provided (for rejoining), otherwise create new
+      onLogin(selectedRole, controllerSessionCode, apiKey);
     } else {
       if (!sessionUuid) {
         setError('Il codice sessione è richiesto');
@@ -85,16 +86,28 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
 
       <div className="login-form">
         {selectedRole === 'controller' ? (
-          <div className="form-group">
-            <label>Chiave API (richiesta per il Controllore)</label>
-            <input
-              type="text"
-              placeholder="Inserisci l'API-key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-            <small>Il Controllore crea una nuova sessione di gioco</small>
-          </div>
+          <>
+            <div className="form-group">
+              <label>Password (richiesta per il Controllore)</label>
+              <input
+                type="text"
+                placeholder="Inserisci la Password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+              <small>Il Controllore crea una nuova sessione di gioco</small>
+            </div>
+            <div className="form-group">
+              <label>Codice Sessione Esistente (opzionale, per rientrare)</label>
+              <input
+                type="text"
+                placeholder="Lascia vuoto per creare nuova sessione"
+                value={controllerSessionCode}
+                onChange={(e) => setControllerSessionCode(e.target.value)}
+              />
+              <small>Inserisci il codice sessione per rientrare come Controllore</small>
+            </div>
+          </>
         ) : (
           <div className="form-group">
             <label>Codice Sessione (ottienilo dal Controllore)</label>
@@ -110,7 +123,9 @@ function LoginScreen({ onLogin, localIP }: LoginScreenProps) {
       </div>
 
       <button onClick={handleLogin} className="login-btn">
-        {selectedRole === 'controller' ? 'Crea Sessione' : 'Unisciti alla Sessione'}
+        {selectedRole === 'controller' ? 
+          (controllerSessionCode ? 'Rientra come Controllore' : 'Crea Sessione') : 
+          'Unisciti alla Sessione'}
       </button>
     </div>
   );

@@ -40,7 +40,7 @@ if static_path.exists():
     @app.get("/{path:path}")
     async def serve_react_app_routes(path: str):
         # Don't catch API routes
-        if path.startswith("api/") or path.startswith("ws/") or path.startswith("create-session"):
+        if path.startswith("api/") or path.startswith("ws/") or path.startswith("create-session") or path.startswith("join-session"):
             raise HTTPException(status_code=404, detail="Not found")
         return FileResponse(str(static_path / "index.html"))
 
@@ -51,6 +51,19 @@ async def create_session(request: dict):
         raise HTTPException(status_code=400, detail="API key required")
     
     session_uuid = session_manager.create_session(api_key)
+    return {"session_uuid": session_uuid}
+
+@app.post("/join-session")
+async def join_session(request: dict):
+    api_key = request.get("api_key")
+    session_code = request.get("session_code")
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key required")
+    if not session_code:
+        raise HTTPException(status_code=400, detail="Session code required")
+    
+    session_uuid = session_manager.validate_and_join_session(api_key, session_code)
     return {"session_uuid": session_uuid}
 
 @app.websocket("/ws/{session_uuid}")

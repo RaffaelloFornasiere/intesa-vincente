@@ -111,7 +111,7 @@ class WebSocketManager:
                 await self._mark_word_incorrect(session_uuid)
             
             elif data.get("type") == "pass_word" and client_type in ["word_giver_1", "word_giver_2"]:
-                await self._pass_word(session_uuid)
+                await self._pass_word(session_uuid, websocket)
             
             elif data.get("type") == "request_guess" and client_type == "word_guesser":
                 print(f"Word guesser requesting guess for session {session_uuid}")
@@ -133,26 +133,23 @@ class WebSocketManager:
         if not session:
             return
         
-        # Pick a new word if we don't have one OR if we need a new word (after correct/incorrect)
-        if not session.get("current_word") or session.get("need_new_word"):
-            word = self.session_manager.pick_new_word(session_uuid)
-            if not word:
-                await self._broadcast_to_session(session_uuid, {
-                    "type": "error",  
-                    "message": "No more words available"
-                })
-                return
-            
-            # New word - restore saved timer value or use 60 for first word
-            session["current_word"] = word
-            if session.get("saved_timer"):
-                session["timer"] = session["saved_timer"]
-                session["saved_timer"] = None  # Clear saved timer
-            elif not session.get("timer") or session.get("timer") == 0:
-                session["timer"] = 60
-            session["need_new_word"] = False
+        # Always pick a new word when starting the game
+        word = self.session_manager.pick_new_word(session_uuid)
+        if not word:
+            await self._broadcast_to_session(session_uuid, {
+                "type": "error",  
+                "message": "No more words available"
+            })
+            return
         
-        # Start/resume game (keep existing timer if resuming)
+        # Set the new word
+        session["current_word"] = word
+        
+        # If timer is 0 or doesn't exist, set to 60
+        if not session.get("timer") or session["timer"] == 0:
+            session["timer"] = 60
+        
+        # Start/resume game
         session["state"] = "playing"
         
         # Start timer
@@ -205,15 +202,11 @@ class WebSocketManager:
         
         # Pause game - controller needs to start next round
         session["state"] = "paused"
-        # Keep current_word but mark that we need a new word next time
-        session["need_new_word"] = True
         
-        # Stop timer if running and preserve the timer value
+        # Stop timer if running
         if session_uuid in self.timer_tasks:
             self.timer_tasks[session_uuid].cancel()
             del self.timer_tasks[session_uuid]
-        # Store current timer value for next round
-        session["saved_timer"] = session["timer"]
         
         await self._broadcast_session_state(session_uuid)
     
@@ -234,15 +227,11 @@ class WebSocketManager:
         
         # Pause game - controller needs to start next round
         session["state"] = "paused"
-        # Keep current_word but mark that we need a new word next time
-        session["need_new_word"] = True
         
-        # Stop timer if running and preserve the timer value
+        # Stop timer if running
         if session_uuid in self.timer_tasks:
             self.timer_tasks[session_uuid].cancel()
             del self.timer_tasks[session_uuid]
-        # Store current timer value for next round
-        session["saved_timer"] = session["timer"]
         
         await self._broadcast_session_state(session_uuid)
     
@@ -282,13 +271,24 @@ class WebSocketManager:
         
         await self._broadcast_session_state(session_uuid)
     
-    async def _pass_word(self, session_uuid: str):
+    async def _pass_word(self, session_uuid: str, websocket: WebSocket):
         """Handle word pass - stops the game (controller must restart)"""
         session = self.session_manager.get_session(session_uuid)
         if not session:
             return
         
-        # Stop the game (similar to stop_game but triggered by word giver)
+        # Check if pass limit reached (3 passes per game)
+        if session.get("pass_count", 0) >= 3:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Pass limit reached (3 per game)"
+            })
+            return
+        
+        # Increment pass count
+        session["pass_count"] = session.get("pass_count", 0) + 1
+        
+        # Just stop the game - new word will be picked when controller presses inizia gioco
         session["state"] = "paused"
         
         # Stop timer
@@ -363,6 +363,9 @@ class WebSocketManager:
         session["stats"]["correct"] = 0
         session["stats"]["incorrect"] = 0
         session["stats"]["total_points"] = 0
+        session["pass_count"] = 0  # Reset pass count on game reset
+        session["need_new_word"] = False  # Reset need_new_word flag
+        session["saved_timer"] = None  # Clear any saved timer
         
         # Clear used words
         self.session_manager.clear_used_words(session_uuid)

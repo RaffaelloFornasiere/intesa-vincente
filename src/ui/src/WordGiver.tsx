@@ -13,6 +13,7 @@ interface SessionData {
     total_points: number;
   };
   current_word: string | null;
+  pass_count?: number;
 }
 
 interface WebSocketMessage {
@@ -130,6 +131,7 @@ function WordGiver({ sessionUuid, clientType, localIP, onLeaveSession }: WordGiv
                   <p className="timer">
                     Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span>
                   </p>
+                  <p>Passi Disponibili: {3 - (sessionData.pass_count || 0)}/3</p>
                 </div>
 
                 {sessionData.current_word && (

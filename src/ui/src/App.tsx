@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { getLocalIP } from './utils/network';
+import { getLocalIP, getBaseURL } from './utils/network';
 import { loadSession, saveSession, clearSession } from './utils/session';
 import LoginScreen, { ClientRole } from './LoginScreen';
 import Controller from './Controller';
@@ -13,17 +13,46 @@ function App() {
   const [apiKey, setApiKey] = useState<string>('');
   const [localIP, setLocalIP] = useState<string>('localhost');
 
-  const handleLogin = (role: ClientRole, uuid: string, key?: string) => {
+  const handleLogin = async (role: ClientRole, uuid: string, key?: string) => {
     setCurrentRole(role);
     setSessionUuid(uuid);
     if (key) {
       setApiKey(key);
     }
-    // Only save to URL if we have a valid session UUID (not empty string)
-    // For controller, this will be saved later when session is created
-    if (uuid) {
+    
+    // Handle controller rejoining existing session
+    if (role === 'controller' && uuid && key) {
+      // Controller wants to rejoin an existing session
+      try {
+        const response = await fetch(`${getBaseURL(localIP)}/join-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            api_key: key,
+            session_code: uuid 
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(`Failed to rejoin session: ${errorData.detail || 'Unknown error'}`);
+          return;
+        }
+
+        const data = await response.json();
+        setSessionUuid(data.session_uuid);
+        saveSession(role, data.session_uuid, key);
+      } catch (err) {
+        alert(`Failed to rejoin session: ${(err as Error).message}`);
+        return;
+      }
+    } else if (uuid) {
+      // Non-controller clients or already validated session
       saveSession(role, uuid, key);
     }
+    // For controller creating new session, UUID will be saved later
   };
 
   const handleLeaveSession = () => {

@@ -13,6 +13,7 @@ interface SessionData {
     total_points: number;
   };
   current_word: string | null;
+  pass_count?: number;
 }
 
 interface WebSocketMessage {
@@ -44,7 +45,8 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
 
   useEffect(() => {
     if (initialSessionUuid) {
-      // Existing session - just connect to WebSocket
+      // Existing session (rejoining) - just connect to WebSocket
+      setSessionUuid(initialSessionUuid);
       connectWebSocket(initialSessionUuid);
     } else {
       // No existing session - create new one
@@ -127,24 +129,6 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
     };
 
     setWebsocket(ws);
-  };
-
-  const testConnection = () => {
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      console.log('Sending test connection message...');
-      websocket.send(JSON.stringify({ type: 'test_connection' }));
-    } else {
-      console.log('WebSocket not connected');
-    }
-  };
-
-  const getSessionState = () => {
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      console.log('Requesting session state...');
-      websocket.send(JSON.stringify({ type: 'get_state' }));
-    } else {
-      console.log('WebSocket not connected');
-    }
   };
 
   const startGame = () => {
@@ -245,8 +229,6 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
             <p className="session-share">Condividi questo codice con gli altri giocatori per entrare nel gioco</p>
             
             <div className="controls">
-              <button onClick={testConnection}>Testa Connessione</button>
-              <button onClick={getSessionState}>Ottieni Stato</button>
               <button 
                 onClick={startGame} 
                 className="start-btn"
@@ -303,6 +285,7 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
                   <p className="current-word">Parola Corrente: <strong>{sessionData.current_word}</strong></p>
                 )}
                 <p className="timer">Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span></p>
+                <p>Passi Disponibili: {3 - (sessionData.pass_count || 0)}/3</p>
                 <p>Client Connessi: {sessionData.connected_clients.join(', ')}</p>
                 <div className="stats">
                   <h4>Statistiche</h4>

@@ -61,7 +61,9 @@ class SessionManager:
                 "incorrect": 0,
                 "total_points": 0
             },
-            "current_word": None
+            "current_word": None,
+            "pass_count": 0,
+            "need_new_word": False
         }
         
         return session_code
@@ -135,3 +137,34 @@ class SessionManager:
             print(f"Cleared used words file: {used_words_file}")
         else:
             print(f"Used words file does not exist: {used_words_file}")
+    
+    def validate_and_join_session(self, api_key: str, session_code: str) -> str:
+        """Validate API key and allow controller to rejoin an existing session"""
+        if api_key != self.api_key:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+        
+        # Check if session exists in active sessions or on disk
+        if session_code not in self.active_sessions:
+            # Try to load from disk
+            session_dir = self.sessions_dir / session_code
+            if session_dir.exists():
+                # Recreate session in memory from disk
+                self.active_sessions[session_code] = {
+                    "uuid": session_code,
+                    "state": "lobby",
+                    "connected_clients": [],
+                    "timer": 60,
+                    "stats": {
+                        "correct": 0,
+                        "incorrect": 0,
+                        "total_points": 0
+                    },
+                    "current_word": None,
+                    "pass_count": 0,
+                    "need_new_word": False
+                }
+                return session_code
+            else:
+                raise HTTPException(status_code=404, detail="Session not found")
+        
+        return session_code
