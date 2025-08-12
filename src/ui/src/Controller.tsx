@@ -43,6 +43,7 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
   const [error, setError] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState<string>('');
   const [buzzAudio] = useState(new Audio('/buzz.wav'));
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   useEffect(() => {
     if (initialSessionUuid) {
@@ -121,6 +122,13 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
       } else if (data.type === 'guess_event') {
         // Play buzz sound when guesser requests to guess
         buzzAudio.play().catch(err => console.error('Error playing buzz sound:', err));
+      } else if (data.type === 'countdown' && data.seconds !== undefined) {
+        // Update countdown timer
+        setCountdown(data.seconds);
+        if (data.seconds === 0) {
+          // Clear countdown when it reaches 0
+          setTimeout(() => setCountdown(null), 1000);
+        }
       } else if (data.error) {
         setError(data.error);
       }
@@ -292,6 +300,15 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
                   <p className="current-word">Parola Corrente: <strong>{sessionData.current_word}</strong></p>
                 )}
                 <p className="timer">Timer: <span className={sessionData.timer <= 10 ? 'timer-warning' : ''}>{sessionData.timer}s</span></p>
+                {countdown !== null && (
+                  <p className="countdown-display" style={{ 
+                    fontSize: '2em', 
+                    color: '#ff6b6b', 
+                    fontWeight: 'bold',
+                  }}>
+                    ⏱️ COUNTDOWN: {countdown}s
+                  </p>
+                )}
                 <p>Passi Disponibili: {3 - (sessionData.pass_count || 0)}/3</p>
                 <p>Client Connessi: {sessionData.connected_clients.join(', ')}</p>
                 <div className="stats">
