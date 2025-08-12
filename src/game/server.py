@@ -36,12 +36,27 @@ if static_path.exists():
     async def serve_react_app():
         return FileResponse(str(static_path / "index.html"))
     
+    # Serve buzz.wav file explicitly
+    @app.get("/buzz.wav")
+    async def serve_buzz_audio():
+        buzz_path = static_path / "buzz.wav"
+        if buzz_path.exists():
+            return FileResponse(str(buzz_path), media_type="audio/wav")
+        raise HTTPException(status_code=404, detail="Buzz audio not found")
+    
     # Catch-all route for React Router (SPA routing)
     @app.get("/{path:path}")
     async def serve_react_app_routes(path: str):
         # Don't catch API routes
         if path.startswith("api/") or path.startswith("ws/") or path.startswith("create-session") or path.startswith("join-session"):
             raise HTTPException(status_code=404, detail="Not found")
+        
+        # Check if it's a static file that exists in build folder
+        file_path = static_path / path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        
+        # Otherwise serve the React app
         return FileResponse(str(static_path / "index.html"))
 
 @app.post("/create-session")
