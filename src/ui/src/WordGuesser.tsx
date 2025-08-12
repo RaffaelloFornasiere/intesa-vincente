@@ -40,6 +40,7 @@ function WordGuesser({ sessionUuid, localIP, onLeaveSession }: WordGuesserProps)
   const [error, setError] = useState<string>('');
   const [showCountdown, setShowCountdown] = useState<boolean>(false);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(5);
+  const [buzzAudio] = useState(new Audio('/buzz.wav'));
 
   useEffect(() => {
     const ws = new WebSocket(getWebSocketURL(localIP, sessionUuid));
@@ -104,6 +105,7 @@ function WordGuesser({ sessionUuid, localIP, onLeaveSession }: WordGuesserProps)
   const stopGame = () => {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
       console.log('Word guesser requesting stop...');
+      buzzAudio.play().catch(err => console.error('Error playing buzz sound:', err));
       websocket.send(JSON.stringify({ type: 'request_guess' }));
     }
   };
