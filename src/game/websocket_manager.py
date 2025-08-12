@@ -29,6 +29,9 @@ class WebSocketManager:
             await websocket.close()
             return
         
+        connection_id = None  # Initialize connection_id before try block
+        initialized_client_type = client_type  # Keep track of client_type for error handling
+        
         try:
             # If client_type not provided, wait for connect message
             if client_type is None:
@@ -59,12 +62,20 @@ class WebSocketManager:
                 session["connected_clients"].append(client_type)
                 print(f"Added {client_type} to session {session_uuid} connected_clients")
             
-            # Send initial state
-            await self._send_session_state(websocket, session)
-            
-            await self._handle_messages(websocket, session_uuid, client_type, connection_id)
+            # Send initial state (with error handling in case connection closes quickly)
+            try:
+                await self._send_session_state(websocket, session)
+                await self._handle_messages(websocket, session_uuid, client_type, connection_id)
+            except WebSocketDisconnect:
+                print(f"WebSocket disconnected during initial setup for {client_type}")
         except WebSocketDisconnect:
-            if connection_id:
+            if connection_id and client_type:
+                await self._disconnect(connection_id, session, client_type)
+            else:
+                print(f"WebSocket disconnected before establishing connection (client_type: {initialized_client_type})")
+        except Exception as e:
+            print(f"Unexpected error in WebSocket connection: {e}")
+            if connection_id and connection_id in self.connections and client_type:
                 await self._disconnect(connection_id, session, client_type)
     
     async def _handle_messages(self, websocket: WebSocket, session_uuid: str, client_type: str, connection_id: str):
@@ -122,11 +133,14 @@ class WebSocketManager:
     
     async def _send_session_state(self, websocket: WebSocket, session: dict):
         print(f"Sending session state: {session}")
-        await websocket.send_json({
-            "type": "session_state",
-            "session": session
-        })
-        print("Session state sent")
+        try:
+            await websocket.send_json({
+                "type": "session_state",
+                "session": session
+            })
+            print("Session state sent")
+        except Exception as e:
+            print(f"Failed to send session state: {e}")
     
     async def _start_game(self, session_uuid: str):
         session = self.session_manager.get_session(session_uuid)
@@ -289,6 +303,12 @@ class WebSocketManager:
         # Increment pass count
         session["pass_count"] = session.get("pass_count", 0) + 1
         
+        # Broadcast pass event to all clients (especially controller for buzz sound)
+        await self._broadcast_to_session(session_uuid, {
+            "type": "pass_event",
+            "message": "Word passed"
+        })
+        
         # Just stop the game - new word will be picked when controller presses inizia gioco
         session["state"] = "paused"
         
@@ -308,6 +328,12 @@ class WebSocketManager:
             return
         
         print(f"Current session state: {session['state']}")
+        
+        # Broadcast guess event to all clients (especially controller for buzz sound)
+        await self._broadcast_to_session(session_uuid, {
+            "type": "guess_event",
+            "message": "Guess requested"
+        })
         
         # Stop the game
         session["state"] = "guessing"

@@ -39,7 +39,6 @@ function WordGiver({ sessionUuid, clientType, localIP, onLeaveSession }: WordGiv
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [error, setError] = useState<string>('');
-  const [buzzAudio] = useState(new Audio('/buzz.wav'));
 
   useEffect(() => {
     connectToSession();
@@ -95,7 +94,6 @@ function WordGiver({ sessionUuid, clientType, localIP, onLeaveSession }: WordGiv
   const passWord = () => {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
       console.log('Passing word...');
-      buzzAudio.play().catch(err => console.error('Error playing buzz sound:', err));
       websocket.send(JSON.stringify({ type: 'pass_word' }));
     }
   };

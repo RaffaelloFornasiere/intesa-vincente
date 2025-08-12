@@ -42,6 +42,7 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [error, setError] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState<string>('');
+  const [buzzAudio] = useState(new Audio('/buzz.wav'));
 
   useEffect(() => {
     if (initialSessionUuid) {
@@ -114,6 +115,12 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
           }
           return prevData;
         });
+      } else if (data.type === 'pass_event') {
+        // Play buzz sound when a player passes
+        buzzAudio.play().catch(err => console.error('Error playing buzz sound:', err));
+      } else if (data.type === 'guess_event') {
+        // Play buzz sound when guesser requests to guess
+        buzzAudio.play().catch(err => console.error('Error playing buzz sound:', err));
       } else if (data.error) {
         setError(data.error);
       }
