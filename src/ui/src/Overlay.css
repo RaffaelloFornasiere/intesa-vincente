@@ -1,0 +1,44 @@
+.overlay-container {
+  position: fixed;
+  width: 1920px;
+  height: 1080px;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.overlay-bar {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.overlay-element {
+  padding: 20px 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.points-element {
+  background-color: #87CEEB; /* Light blue */
+}
+
+.word-element {
+  background-color: #90EE90; /* Light green */
+}
+
+.timer-element {
+  background-color: #4169E1; /* Blue */
+}
+
+.overlay-value {
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}

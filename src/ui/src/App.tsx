@@ -6,8 +6,12 @@ import LoginScreen, { ClientRole } from './LoginScreen';
 import Controller from './Controller';
 import WordGiver from './WordGiver';
 import WordGuesser from './WordGuesser';
+import Overlay from './Overlay';
 
 function App() {
+  // Check if we're on the overlay route
+  const isOverlay = window.location.pathname === '/overlay';
+  
   const [currentRole, setCurrentRole] = useState<ClientRole | null>(null);
   const [sessionUuid, setSessionUuid] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
@@ -96,17 +100,25 @@ function App() {
       setLocalIP(ip);
     });
 
-    // Try to restore session from localStorage
-    const savedSession = loadSession();
-    if (savedSession) {
-      console.log('Restoring session:', savedSession);
-      setCurrentRole(savedSession.role);
-      setSessionUuid(savedSession.sessionUuid);
-      if (savedSession.apiKey) {
-        setApiKey(savedSession.apiKey);
+    // Don't restore session for overlay route
+    if (!isOverlay) {
+      // Try to restore session from localStorage
+      const savedSession = loadSession();
+      if (savedSession) {
+        console.log('Restoring session:', savedSession);
+        setCurrentRole(savedSession.role);
+        setSessionUuid(savedSession.sessionUuid);
+        if (savedSession.apiKey) {
+          setApiKey(savedSession.apiKey);
+        }
       }
     }
   }, []);
+
+  // Show overlay if on /overlay route
+  if (isOverlay) {
+    return <Overlay />;
+  }
 
   return renderCurrentInterface();
 }
