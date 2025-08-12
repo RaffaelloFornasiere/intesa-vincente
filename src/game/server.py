@@ -29,6 +29,19 @@ websocket_manager.set_session_manager(session_manager)
 
 # Serve React static files
 static_path = Path(__file__).parent.parent / "ui" / "build"
+
+# Define buzz.wav route FIRST and OUTSIDE the conditional
+@app.get("/buzz.wav")
+async def serve_buzz_audio():
+    buzz_path = static_path / "buzz.wav"
+    if buzz_path.exists():
+        return FileResponse(str(buzz_path), media_type="audio/wav")
+    # If not in build folder, try public folder (development)
+    public_buzz = Path(__file__).parent.parent / "ui" / "public" / "buzz.wav"
+    if public_buzz.exists():
+        return FileResponse(str(public_buzz), media_type="audio/wav")
+    raise HTTPException(status_code=404, detail="Buzz audio not found")
+
 if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path / "static")), name="static")
     
@@ -36,25 +49,35 @@ if static_path.exists():
     async def serve_react_app():
         return FileResponse(str(static_path / "index.html"))
     
-    # Serve buzz.wav file explicitly
-    @app.get("/buzz.wav")
-    async def serve_buzz_audio():
-        buzz_path = static_path / "buzz.wav"
-        if buzz_path.exists():
-            return FileResponse(str(buzz_path), media_type="audio/wav")
-        raise HTTPException(status_code=404, detail="Buzz audio not found")
-    
-    # Catch-all route for React Router (SPA routing)
+    # Catch-all route for React Router (SPA routing) - but check for specific files first
     @app.get("/{path:path}")
     async def serve_react_app_routes(path: str):
         # Don't catch API routes
         if path.startswith("api/") or path.startswith("ws/") or path.startswith("create-session") or path.startswith("join-session"):
             raise HTTPException(status_code=404, detail="Not found")
         
+        # Special handling for known static assets
+        if path in ["favicon.ico", "manifest.json", "robots.txt", "logo192.png", "logo512.png"]:
+            file_path = static_path / path
+            if file_path.exists():
+                return FileResponse(str(file_path))
+        
         # Check if it's a static file that exists in build folder
         file_path = static_path / path
         if file_path.exists() and file_path.is_file():
-            return FileResponse(str(file_path))
+            # Determine media type for common files
+            if path.endswith('.wav'):
+                return FileResponse(str(file_path), media_type="audio/wav")
+            elif path.endswith('.mp3'):
+                return FileResponse(str(file_path), media_type="audio/mpeg")
+            elif path.endswith('.json'):
+                return FileResponse(str(file_path), media_type="application/json")
+            elif path.endswith('.ico'):
+                return FileResponse(str(file_path), media_type="image/x-icon")
+            elif path.endswith('.png'):
+                return FileResponse(str(file_path), media_type="image/png")
+            else:
+                return FileResponse(str(file_path))
         
         # Otherwise serve the React app
         return FileResponse(str(static_path / "index.html"))
