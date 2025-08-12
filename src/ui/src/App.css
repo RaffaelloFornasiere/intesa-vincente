@@ -146,6 +146,41 @@
   margin-top: 15px;
 }
 
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+  padding: 5px 0;
+}
+
+.stat-row span {
+  flex: 1;
+  text-align: left;
+}
+
+.stat-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.stat-btn {
+  padding: 2px 10px;
+  font-size: 14px;
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  min-width: 30px;
+}
+
+.stat-btn:hover {
+  background-color: #61dafb;
+  color: #333;
+}
+
 .current-word {
   font-size: 18px;
   background-color: #555;

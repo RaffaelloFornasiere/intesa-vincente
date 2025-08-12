@@ -194,6 +194,13 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
     }
   };
 
+  const adjustStats = (statType: 'correct' | 'incorrect' | 'total_points', delta: number) => {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
+      console.log(`Adjusting ${statType} by ${delta}...`);
+      websocket.send(JSON.stringify({ type: 'adjust_stats', stat_type: statType, delta }));
+    }
+  };
+
   const copySessionCode = async () => {
     try {
       await navigator.clipboard.writeText(sessionUuid);
@@ -313,9 +320,27 @@ function Controller({ apiKey, localIP, sessionUuid: initialSessionUuid, onLeaveS
                 <p>Client Connessi: {sessionData.connected_clients.join(', ')}</p>
                 <div className="stats">
                   <h4>Statistiche</h4>
-                  <p>Corrette: {sessionData.stats.correct}</p>
-                  <p>Sbagliate: {sessionData.stats.incorrect}</p>
-                  <p>Punti Totali: {sessionData.stats.total_points}</p>
+                  <div className="stat-row">
+                    <span>Corrette: {sessionData.stats.correct}</span>
+                    <div className="stat-buttons">
+                      <button onClick={() => adjustStats('correct', -1)} className="stat-btn">-</button>
+                      <button onClick={() => adjustStats('correct', 1)} className="stat-btn">+</button>
+                    </div>
+                  </div>
+                  <div className="stat-row">
+                    <span>Sbagliate: {sessionData.stats.incorrect}</span>
+                    <div className="stat-buttons">
+                      <button onClick={() => adjustStats('incorrect', -1)} className="stat-btn">-</button>
+                      <button onClick={() => adjustStats('incorrect', 1)} className="stat-btn">+</button>
+                    </div>
+                  </div>
+                  <div className="stat-row">
+                    <span>Punti Totali: {sessionData.stats.total_points}</span>
+                    <div className="stat-buttons">
+                      <button onClick={() => adjustStats('total_points', -1)} className="stat-btn">-</button>
+                      <button onClick={() => adjustStats('total_points', 1)} className="stat-btn">+</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

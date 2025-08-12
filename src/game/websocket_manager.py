@@ -115,6 +115,11 @@ class WebSocketManager:
                 seconds = data.get("seconds", 0)
                 await self._adjust_timer(session_uuid, seconds)
             
+            elif data.get("type") == "adjust_stats" and client_type == "controller":
+                stat_type = data.get("stat_type")
+                delta = data.get("delta", 0)
+                await self._adjust_stats(session_uuid, stat_type, delta)
+            
             elif data.get("type") == "mark_word_correct" and client_type == "controller":
                 await self._mark_word_correct(session_uuid)
             
@@ -196,6 +201,21 @@ class WebSocketManager:
             return
         
         session["timer"] = max(0, session["timer"] + seconds)
+        
+        await self._broadcast_session_state(session_uuid)
+    
+    async def _adjust_stats(self, session_uuid: str, stat_type: str, delta: int):
+        session = self.session_manager.get_session(session_uuid)
+        if not session:
+            return
+        
+        # Manual adjustments - each stat is independent
+        if stat_type == "correct":
+            session["stats"]["correct"] = max(0, session["stats"]["correct"] + delta)
+        elif stat_type == "incorrect":
+            session["stats"]["incorrect"] = max(0, session["stats"]["incorrect"] + delta)
+        elif stat_type == "total_points":
+            session["stats"]["total_points"] = session["stats"]["total_points"] + delta
         
         await self._broadcast_session_state(session_uuid)
     
