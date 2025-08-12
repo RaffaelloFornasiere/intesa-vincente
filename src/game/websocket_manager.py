@@ -223,7 +223,8 @@ class WebSocketManager:
         # Mark word as used and update stats
         self.session_manager.mark_word_used(session_uuid, current_word)
         session["stats"]["incorrect"] += 1
-        session["stats"]["total_points"] -= 1
+        # Prevent negative points
+        session["stats"]["total_points"] = max(0, session["stats"]["total_points"] - 1)
         
         # Pause game - controller needs to start next round
         session["state"] = "paused"
